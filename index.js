@@ -35,8 +35,8 @@ exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid
                                                  })
                                              })
                                          })
-// update friendsCharts when user add chart
-exports.updateFriendsCharts = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/{createdAt}`)
+// update friendsCharts when user add chart or delete or vote
+exports.updateFriendsCharts = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/chartData`)
                               .onWrite(event => {
                                     const userUid = event.params.userUid;
                                     const chartKey = event.params.chartKey;
