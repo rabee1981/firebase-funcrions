@@ -35,14 +35,16 @@ exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid
                                                  })
                                              })
                                          })
-// update friendsCharts when user add chart or delete or vote
+// update friendsCharts and allCharts when user add chart or delete or vote
 exports.updateFriendsCharts = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/chartData`)
                               .onWrite(event => {
                                     const userUid = event.params.userUid;
                                     const chartKey = event.params.chartKey;
-                                    const createdAt = event.params.createdAt;
-                                    const isExist = event.data.val();
                                     let userFriends =[];
+                                    admin.database().ref(`/users/${userUid}/userCharts/${chartKey}`).once('value')
+                                            .then(chartToAdd => {
+                                                admin.database().ref(`allCharts/${chartKey}`).set(chartToAdd.val())
+                                    })
                                     return admin.database().ref(`users/${userUid}/friendsList`).once('value')
                                     .then(friends => {
                                         friends.forEach(friend => {
@@ -65,4 +67,22 @@ exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{i
                                  admin.database().ref(`users/${userUid}/friendsCharts`).update(friendCharts.val())
                              })
                          })
+// update loveCount in allCharts and friendsCharts
+exports.updateChartsWhenLove = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/loveCount`)
+                              .onWrite(event => {
+                                    const userUid = event.params.userUid;
+                                    const chartKey = event.params.chartKey;
+                                    const loveCount = event.data.val();
+                                    let userFriends =[];
+                                    admin.database().ref(`allCharts/${chartKey}/loveCount`).set(loveCount)
+                                    return admin.database().ref(`users/${userUid}/friendsList`).once('value')
+                                    .then(friends => {
+                                        friends.forEach(friend => {
+                                            userFriends.push(friend.val().firebaseUid);
+                                        })
+                                        for(let f of userFriends){
+                                            admin.database().ref(`users/${f}/friendsCharts/${chartKey}/loveCount`).set(loveCount)
+                                        }
+                                    })
+                              })
 
