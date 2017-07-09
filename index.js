@@ -35,8 +35,31 @@ exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid
                                                  })
                                              })
                                          })
-// update friendsCharts and allCharts when user add chart or delete or vote
-exports.updateFriendsCharts = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/chartData`)
+// update friendsCharts and allCharts when vote
+exports.updateChartsWhenVote = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/chartData`)
+                              .onWrite(event => {
+                                    const userUid = event.params.userUid;
+                                    const chartKey = event.params.chartKey;
+                                    const chartData = event.data.val();
+                                    let userFriends =[];
+                                    if(chartData !== null){
+                                        const voteCount = -1*chartData.reduce((a,b) => {return a+b})
+                                        admin.database().ref(`allCharts/${chartKey}/chartData`).set(chartData)
+                                        admin.database().ref(`allCharts/${chartKey}/voteCount`).set(voteCount)
+                                        return admin.database().ref(`users/${userUid}/friendsList`).once('value')
+                                        .then(friends => {
+                                            friends.forEach(friend => {
+                                                userFriends.push(friend.val().firebaseUid);
+                                            })
+                                            for(let f of userFriends){
+                                                admin.database().ref(`users/${f}/friendsCharts/${chartKey}/chartData`).set(chartData)
+                                                admin.database().ref(`users/${f}/friendsCharts/${chartKey}/voteCount`).set(voteCount)
+                                            }
+                                        })
+                                    }
+                              })
+// update friendsCharts and allCharts when user add chart or delete
+exports.updateFriendsCharts = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/createdAt`)
                               .onWrite(event => {
                                     const userUid = event.params.userUid;
                                     const chartKey = event.params.chartKey;
@@ -74,15 +97,17 @@ exports.updateChartsWhenLove = functions.database.ref(`/users/{userUid}/userChar
                                     const chartKey = event.params.chartKey;
                                     const loveCount = event.data.val();
                                     let userFriends =[];
-                                    admin.database().ref(`allCharts/${chartKey}/loveCount`).set(loveCount)
-                                    return admin.database().ref(`users/${userUid}/friendsList`).once('value')
-                                    .then(friends => {
-                                        friends.forEach(friend => {
-                                            userFriends.push(friend.val().firebaseUid);
+                                    if(loveCount !== null){
+                                        admin.database().ref(`allCharts/${chartKey}/loveCount`).set(loveCount)
+                                        return admin.database().ref(`users/${userUid}/friendsList`).once('value')
+                                        .then(friends => {
+                                            friends.forEach(friend => {
+                                                userFriends.push(friend.val().firebaseUid);
+                                            })
+                                            for(let f of userFriends){
+                                                admin.database().ref(`users/${f}/friendsCharts/${chartKey}/loveCount`).set(loveCount)
+                                            }
                                         })
-                                        for(let f of userFriends){
-                                            admin.database().ref(`users/${f}/friendsCharts/${chartKey}/loveCount`).set(loveCount)
-                                        }
-                                    })
+                                    }
                               })
 
