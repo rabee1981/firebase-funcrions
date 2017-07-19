@@ -110,4 +110,35 @@ exports.updateChartsWhenLove = functions.database.ref(`/users/{userUid}/userChar
                                         })
                                     }
                               })
+// send push notification
+exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey}/voters/{voteruid}')
+                                     .onWrite(event => {
+                                         const voteruid = event.params.voteruid
+                                         const useruid = event.params.useruid
+                                         const chartkey = event.params.chartkey
+                                         // Exit when the data is deleted.
+                                        if (!event.data.exists()) {
+                                            return;
+                                        }
+                                         admin.database().ref(`/users/${useruid}/userInfo/deviceToken`).once('value')
+                                         .then(token=>{
+                                             admin.database().ref(`users/${voteruid}/userInfo`).once('value')
+                                             .then(userInfo => {
+                                                var payload ={
+                                                "notification":{
+                                                "title":"Vote4Fun",
+                                                "body":userInfo.val().name+" vote to your chart",
+                                                "sound":"default",
+                                                }
+                                             }
+                                            return admin.messaging().sendToDevice(token.val(),payload)
+                                            .then(res => {
+                                                console.log('notification sended');
+                                            })
+                                            .catch(err => {
+                                                console.log(err)
+                                            })
+                                             })
+                                         })
+                                     })
 
