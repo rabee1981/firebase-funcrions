@@ -115,7 +115,8 @@ exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey
                                      .onWrite(event => {
                                          const voteruid = event.params.voteruid
                                          const useruid = event.params.useruid
-                                         const chartkey = event.params.chartkey
+                                         const chartKey = event.params.chartKey
+                                         console.log(chartKey)
                                          // Exit when the data is deleted.
                                         if (!event.data.exists()) {
                                             return;
@@ -124,20 +125,23 @@ exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey
                                          .then(token=>{
                                              admin.database().ref(`users/${voteruid}/userInfo`).once('value')
                                              .then(userInfo => {
-                                                var payload ={
+                                                 admin.database().ref(`users/${useruid}/userCharts/${chartKey}/chartTitle`).once('value')
+                                                 .then(chartName => {
+                                                        var payload ={
                                                 "notification":{
-                                                "title":"Vote4Fun",
-                                                "body":userInfo.val().name+" vote to your chart",
-                                                "sound":"default",
-                                                }
-                                             }
-                                            return admin.messaging().sendToDevice(token.val(),payload)
-                                            .then(res => {
-                                                console.log('notification sended');
-                                            })
-                                            .catch(err => {
-                                                console.log(err)
-                                            })
+                                                    "title":"Vote4Fun",
+                                                    "body":userInfo.val().name+" vote to "+chartName.val(),
+                                                    "sound":"default",
+                                                        }
+                                                    }
+                                                    return admin.messaging().sendToDevice(token.val(),payload)
+                                                    .then(res => {
+                                                        console.log('notification sended');
+                                                    })
+                                                    .catch(err => {
+                                                        console.log(err)
+                                                    })
+                                                 })
                                              })
                                          })
                                      })
