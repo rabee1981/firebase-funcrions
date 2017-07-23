@@ -35,14 +35,18 @@ exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid
                                                  })
                                              })
                                          })
-// update friendsCharts and allCharts when vote
+// update friendsCharts and allCharts when vote and store voters
 exports.updateChartsWhenVote = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/chartData`)
                               .onWrite(event => {
                                     const userUid = event.params.userUid;
                                     const chartKey = event.params.chartKey;
                                     const chartData = event.data.val();
+                                    const voterUid = event.auth.variable ? event.auth.variable.uid : null;
                                     let userFriends =[];
                                     if(chartData !== null){
+                                        if(voterUid && event.data.exists() && event.data.previous.exists()){
+                                             admin.database().ref(`users/${userUid}/userCharts/${chartKey}/voters/${voterUid}`).set(true)
+                                        }
                                         const voteCount = -1*chartData.reduce((a,b) => {return a+b})
                                         admin.database().ref(`allCharts/${chartKey}/chartData`).set(chartData)
                                         admin.database().ref(`allCharts/${chartKey}/voteCount`).set(voteCount)
