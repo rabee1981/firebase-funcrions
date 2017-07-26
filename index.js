@@ -45,9 +45,6 @@ exports.updateChartsWhenVote = functions.database.ref(`/users/{userUid}/userChar
                                     const voterUid = event.auth.variable ? event.auth.variable.uid : null;
                                     let userFriends =[];
                                     if(chartData !== null){
-                                        if(voterUid && event.data.exists() && event.data.previous.exists()){
-                                             admin.database().ref(`users/${userUid}/userCharts/${chartKey}/voters/${voterUid}`).set(true)
-                                        }
                                         const voteCount = -1*chartData.reduce((a,b) => {return a+b})
                                         admin.database().ref(`allCharts/${chartKey}/chartData`).set(chartData)
                                         admin.database().ref(`allCharts/${chartKey}/voteCount`).set(voteCount)
@@ -194,5 +191,42 @@ exports.storeChart = functions.https.onRequest((req,res) => {
         })
       .catch((err) => res.status(402).send('permission denied'));
   });
+})
+
+exports.voteFor = functions.https.onRequest((req,res)=>{
+        cors(req, res, () => {
+            const tokenId = req.get('Authorization').split('Bearer ')[1];
+            return admin.auth().verifyIdToken(tokenId)
+            .then((decoded) => {
+                var useruid = decoded.uid;
+                const key = req.query.key
+                const owner = req.query.owner
+                const index = req.query.index
+                admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).once('value')
+                .then(
+                    voters => {
+                        if(voters.val()){
+                            res.status(401).send('you are already voted')
+                        }else{
+                                admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).set(true)
+                                admin.database().ref(`users/${owner}/userCharts/${key}/chartData/${index}`).ref.transaction(
+                                currentValue =>{
+                                    currentValue++
+                                    return currentValue
+                                }
+                            )
+                            admin.database().ref(`users/${owner}/userCharts/${key}/voteCount`).ref.transaction(
+                                currentValue =>{
+                                    currentValue--
+                                    return currentValue
+                                }
+                            )
+                            res.status(200).send('voted successfully')
+                        }
+                    }
+                )
+            })
+            .catch((err) => res.status(402).send('permission denied'));
+        });
 })
 
