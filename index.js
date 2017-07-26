@@ -210,16 +210,16 @@ exports.voteFor = functions.https.onRequest((req,res)=>{
                         if(voters.val()){
                             res.status(401).send('you are already voted')
                         }else{
+                                admin.database().ref(`users/${owner}/userCharts/${key}/voteCount`).ref.transaction(
+                                currentValue =>{
+                                    currentValue--
+                                    return currentValue
+                                    }
+                                )
                                 admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).set(true)
                                 admin.database().ref(`users/${owner}/userCharts/${key}/chartData/${index}`).ref.transaction(
                                 currentValue =>{
                                     currentValue++
-                                    return currentValue
-                                }
-                            )
-                            admin.database().ref(`users/${owner}/userCharts/${key}/voteCount`).ref.transaction(
-                                currentValue =>{
-                                    currentValue--
                                     return currentValue
                                 }
                             )
@@ -247,6 +247,7 @@ exports.deleteChart = functions.https.onRequest((req,res)=>{
                     if(!isOwner){
                         res.status(401).send('you are not the owner for this chart, so you cannot delete it')
                     }else{
+                        admin.
                         admin.database().ref(`users/${useruid}/userCharts/${key}`).remove()
                         res.status(200).send('deleted successfully')
                     }
