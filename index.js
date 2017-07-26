@@ -121,7 +121,6 @@ exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey
                                          const voteruid = event.params.voteruid
                                          const useruid = event.params.useruid
                                          const chartKey = event.params.chartKey
-                                         console.log(chartKey)
                                          // Exit when the data is deleted.
                                         if (!event.data.exists()) {
                                             return;
@@ -175,10 +174,22 @@ exports.storeChart = functions.https.onRequest((req,res) => {
               res.status(401).send('writing denied')
               return;
           }
-          var key = admin.database().ref(`users/${useruid}/userCharts`).push(chartDetails).then(
-              chart => {
-                res.status(200).send(chart.key)
+          admin.database().ref(`users/${useruid}/userCharts`).once('value').then(
+              chartsSnap => {
+                  return Object.keys(chartsSnap.val()).length < 4
               }
+          ).then(
+            isUnderLimit => {
+                if(isUnderLimit){
+                    var key = admin.database().ref(`users/${useruid}/userCharts`).push(chartDetails).then(
+                        chart => {
+                            res.status(200).send(chart.key)
+                        }
+                    )
+                }else{
+                    res.status(403).send('write denied by chart limit')
+                }
+            }
           )
         })
       .catch((err) => res.status(402).send('permission denied'));
