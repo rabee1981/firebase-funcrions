@@ -173,7 +173,9 @@ exports.storeChart = functions.https.onRequest((req,res) => {
           }
           admin.database().ref(`users/${useruid}/userCharts`).once('value').then(
               chartsSnap => {
-                  return Object.keys(chartsSnap.val()).length < 4
+                  if(chartsSnap.val())
+                    return Object.keys(chartsSnap.val()).length < 4
+                  return true
               }
           ).then(
             isUnderLimit => {
@@ -225,6 +227,30 @@ exports.voteFor = functions.https.onRequest((req,res)=>{
                         }
                     }
                 )
+            })
+            .catch((err) => res.status(402).send('permission denied'));
+        });
+})
+
+exports.deleteChart = functions.https.onRequest((req,res)=>{
+        cors(req, res, () => {
+            const tokenId = req.get('Authorization').split('Bearer ')[1];
+            return admin.auth().verifyIdToken(tokenId)
+            .then((decoded) => {
+                var useruid = decoded.uid;
+                const key = req.query.key
+                admin.database().ref(`users/${useruid}/userCharts/${key}`).once('value')
+                .then(chart => {
+                    return chart.val().owner === useruid
+                })
+                .then(isOwner => {
+                    if(!isOwner){
+                        res.status(401).send('you are not the owner for this chart, so you cannot delete it')
+                    }else{
+                        admin.database().ref(`users/${useruid}/userCharts/${key}`).remove()
+                        res.status(200).send('deleted successfully')
+                    }
+                })
             })
             .catch((err) => res.status(402).send('permission denied'));
         });
