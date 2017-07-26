@@ -247,7 +247,6 @@ exports.deleteChart = functions.https.onRequest((req,res)=>{
                     if(!isOwner){
                         res.status(401).send('you are not the owner for this chart, so you cannot delete it')
                     }else{
-                        admin.
                         admin.database().ref(`users/${useruid}/userCharts/${key}`).remove()
                         res.status(200).send('deleted successfully')
                     }
