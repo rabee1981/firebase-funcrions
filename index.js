@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const cors = require('cors')({origin: true})
 admin.initializeApp(functions.config().firebase);
 
 exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid}/friendsList/{index}/facebookUid')
@@ -149,4 +150,38 @@ exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey
                                              })
                                          })
                                      })
+exports.storeChart = functions.https.onRequest((req,res) => {
+    cors(req, res, () => {
+    const chartDetails = req.body
+    isArray = Array.isArray(chartDetails.chartData)
+    isLength4 = (chartDetails.chartData.length == 4)
+    isNumberAndZero = true;
+    for(n of chartDetails.chartData){
+        if(n!==0){
+            isNumberAndZero = false;
+        }
+    }
+    isVoteCountZero = (chartDetails.voteCount == 0)
+    isLoveCount = (chartDetails.loveCount==0)
+    if(chartDetails.voters!==undefined || !isArray || !isLength4 || !isNumberAndZero || !isVoteCountZero || !isLoveCount){
+        res.status(401).send('writing denied')
+        return;
+    }
+    const tokenId = req.get('Authorization').split('Bearer ')[1];
+    return admin.auth().verifyIdToken(tokenId)
+      .then((decoded) => {
+          var useruid = decoded.uid;
+          if(chartDetails.owner !== useruid){
+              res.status(401).send('writing denied')
+              return;
+          }
+          var key = admin.database().ref(`users/${useruid}/userCharts`).push(chartDetails).then(
+              chart => {
+                res.status(200).send(chart.key)
+              }
+          )
+        })
+      .catch((err) => res.status(402).send('permission denied'));
+  });
+})
 
