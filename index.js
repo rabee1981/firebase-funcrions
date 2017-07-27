@@ -122,7 +122,7 @@ exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey
                                         if (!event.data.exists()) {
                                             return;
                                         }
-                                         admin.database().ref(`/users/${useruid}/userInfo/deviceToken`).once('value')
+                                         admin.database().ref(`/users/${useruid}/deviceToken`).once('value')
                                          .then(token=>{
                                              admin.database().ref(`users/${voteruid}/userInfo`).once('value')
                                              .then(userInfo => {
