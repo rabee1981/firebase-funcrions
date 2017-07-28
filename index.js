@@ -152,14 +152,14 @@ exports.storeChart = functions.https.onRequest((req,res) => {
     isArray = Array.isArray(chartDetails.chartData)
     isLength4 = (chartDetails.chartData.length == 4)
     isNumberAndZero = true;
+    isFollowerCountIsZero = (chartDetails.followerCount == 0)
     for(n of chartDetails.chartData){
         if(n!==0){
             isNumberAndZero = false;
         }
     }
     isVoteCountZero = (chartDetails.voteCount == 0)
-    isLoveCount = (chartDetails.loveCount==0)
-    if(chartDetails.voters!==undefined || !isArray || !isLength4 || !isNumberAndZero || !isVoteCountZero || !isLoveCount){
+    if(chartDetails.voters!==undefined || !isArray || !isLength4 || !isNumberAndZero || !isVoteCountZero || !isFollowerCountIsZero){
         res.status(401).send('writing denied')
         return;
     }
@@ -255,4 +255,37 @@ exports.deleteChart = functions.https.onRequest((req,res)=>{
             .catch((err) => res.status(402).send('permission denied'));
         });
 })
-
+exports.followChart = functions.https.onRequest((req,res)=>{
+        cors(req, res, () => {
+            const tokenId = req.get('Authorization').split('Bearer ')[1];
+            return admin.auth().verifyIdToken(tokenId)
+            .then((decoded) => {
+                var useruid = decoded.uid;
+                const key = req.query.key
+                const owner = req.query.owner
+                admin.database().ref(`users/${useruid}/follow/${key}`).once('value')
+                .then(
+                    followers => {
+                                let toFollow = followers.val() ? null : true
+                                let message = "follow"
+                                admin.database().ref(`users/${owner}/userCharts/${key}/followerCount`).ref.transaction(
+                                currentValue =>{
+                                    if(toFollow){
+                                        currentValue--
+                                    }
+                                    else{
+                                        currentValue++
+                                        message = "unfollow"
+                                    }
+                                    return currentValue
+                                    }
+                                )
+                                admin.database().ref(`users/${owner}/userCharts/${key}/followers/${useruid}`).set(toFollow)
+                                admin.database().ref(`users/${useruid}/follow/${key}`).set(toFollow)
+                            res.status(200).send(message+' successfully')
+                        }
+                )
+            })
+            .catch((err) => res.status(402).send('permission denied'));
+        });
+})
