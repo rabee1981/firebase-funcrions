@@ -1,6 +1,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const cors = require('cors')({origin: true})
+const gcs = require('@google-cloud/storage')()
 admin.initializeApp(functions.config().firebase);
 
 exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid}/friendsList/{index}/facebookUid')
@@ -298,4 +299,28 @@ exports.followChart = functions.https.onRequest((req,res)=>{
             })
             .catch((err) => res.status(402).send('permission denied'));
         });
+})
+exports.limitUploadToStorage = functions.storage.object().onChange(event => {
+    const object = event.data; // The Storage object.
+    const resourceState = object.resourceState; // The resourceState is 'exists' or 'not_exists' (for file/folder deletions).
+    // Exit if this is a move or deletion event.
+    if (resourceState === 'not_exists') {
+        console.log('This is a deletion event.');
+        return;
+    }
+    const fileBucket = object.bucket;
+    const bucket = gcs.bucket(fileBucket);
+    const filePath = object.name;
+    const folderPath = filePath.substring(0,filePath.lastIndexOf('/'))
+    const file = bucket.file(filePath)
+    bucket.getFiles({
+        prefix: folderPath, //Path like what you use to get reference of your files in storage 
+    }, (error, files) => {
+        if(files.length>5){
+            file.delete().then(()=>{
+                console.log('uploading more than 4 images was rejected')
+            })
+        }
+    });
+    return
 })
