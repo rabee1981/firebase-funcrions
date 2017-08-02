@@ -119,8 +119,8 @@ exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey
                                          const voteruid = event.params.voteruid
                                          const useruid = event.params.useruid
                                          const chartKey = event.params.chartKey
-                                         // Exit when the data is deleted.
-                                        if (!event.data.exists()) {
+                                         // Exit when the data is deleted. OR the user vote to his chart
+                                        if (!event.data.exists() || voteruid===useruid) {
                                             return;
                                         }
                                          admin.database().ref(`/users/${useruid}/deviceToken`).once('value')
