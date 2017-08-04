@@ -3,6 +3,7 @@ const admin = require('firebase-admin');
 const cors = require('cors')({origin: true})
 const gcs = require('@google-cloud/storage')()
 admin.initializeApp(functions.config().firebase);
+const request = require('request-promise');
 
 exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid}/friendsList/{index}/facebookUid')
                                          .onWrite(event => {
@@ -323,4 +324,37 @@ exports.limitUploadToStorage = functions.storage.object().onChange(event => {
         }
     });
     return
+})
+
+exports.getShortLink = functions.https.onRequest((req,res)=>{
+        cors(req, res, () => {
+            const tokenId = req.get('Authorization').split('Bearer ')[1];
+            return admin.auth().verifyIdToken(tokenId)
+            .then((decoded) => {
+                const longUrl = req.query.longUrl
+                if(typeof longUrl !== 'string'){
+                    res.status(401).send('called rejected')
+                    return
+                }
+                const googleShortenerKey = "AIzaSyB3Yywoi6F0ipDHYWEV7HCDEJGgKh84Irg";
+                request({
+                            method: 'POST',
+                            uri: `https://www.googleapis.com/urlshortener/v1/url?key=${googleShortenerKey}`,
+                            body: {
+                            longUrl: longUrl
+                            },
+                            json: true,
+                            resolveWithFullResponse: true
+                        }).then(response => {
+                            if (response.statusCode === 200) {
+                                return response.body.id;
+                            }
+                            throw response.body;
+                        }).then(shortUrl => {
+                            res.status(200).send(shortUrl)
+                        })
+                
+            })
+            .catch((err) => res.status(402).send('permission denied'));
+        });
 })
