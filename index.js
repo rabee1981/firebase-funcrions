@@ -38,7 +38,7 @@ exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid
                                                  })
                                              })
                                          })
-// update friendsCharts and allCharts when vote and store voters
+// update friendsCharts and publicCharts when vote and store voters
 exports.updateChartsWhenVote = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/chartData`)
                               .onWrite(event => {
                                     const userUid = event.params.userUid;
@@ -48,8 +48,13 @@ exports.updateChartsWhenVote = functions.database.ref(`/users/{userUid}/userChar
                                     let userFriends =[];
                                     if(chartData !== null){
                                         const voteCount = -1*chartData.reduce((a,b) => {return a+b})
-                                        admin.database().ref(`allCharts/${chartKey}/chartData`).set(chartData)
-                                        admin.database().ref(`allCharts/${chartKey}/voteCount`).set(voteCount)
+                                        admin.database().ref(`users/${userUid}/userCharts/${chartKey}/isPublic`).once('value')
+                                        .then(isP => {
+                                            if(isP.val() === "true"){
+                                                admin.database().ref(`publicCharts/${chartKey}/chartData`).set(chartData)
+                                                admin.database().ref(`publicCharts/${chartKey}/voteCount`).set(voteCount)                                                
+                                            }
+                                        })
                                         return admin.database().ref(`users/${userUid}/friendsList`).once('value')
                                         .then(friends => {
                                             friends.forEach(friend => {
@@ -62,7 +67,7 @@ exports.updateChartsWhenVote = functions.database.ref(`/users/{userUid}/userChar
                                         })
                                     }
                               })
-// update friendsCharts and allCharts when user add chart or delete
+// update friendsCharts and publicCharts when user add chart or delete
 exports.updateFriendsCharts = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/createdAt`)
                               .onWrite(event => {
                                     const userUid = event.params.userUid;
@@ -70,7 +75,9 @@ exports.updateFriendsCharts = functions.database.ref(`/users/{userUid}/userChart
                                     let userFriends =[];
                                     admin.database().ref(`/users/${userUid}/userCharts/${chartKey}`).once('value')
                                             .then(chartToAdd => {
-                                                admin.database().ref(`allCharts/${chartKey}`).set(chartToAdd.val())
+                                                if(chartToAdd.val() && chartToAdd.val().isPublic === "false")
+                                                    return
+                                                admin.database().ref(`publicCharts/${chartKey}`).set(chartToAdd.val())
                                     })
                                     return admin.database().ref(`users/${userUid}/friendsList`).once('value')
                                     .then(friends => {
@@ -94,7 +101,7 @@ exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{i
                                  admin.database().ref(`users/${userUid}/friendsCharts`).update(friendCharts.val())
                              })
                          })
-// update loveCount in allCharts and friendsCharts
+// update loveCount in publicCharts and friendsCharts
 exports.updateChartsWhenLove = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/loveCount`)
                               .onWrite(event => {
                                     const userUid = event.params.userUid;
@@ -102,7 +109,12 @@ exports.updateChartsWhenLove = functions.database.ref(`/users/{userUid}/userChar
                                     const loveCount = event.data.val();
                                     let userFriends =[];
                                     if(loveCount !== null){
-                                        admin.database().ref(`allCharts/${chartKey}/loveCount`).set(loveCount)
+                                        admin.database().ref(`users/${userUid}/userCharts/${chartKey}/isPublic`).once('value')
+                                        .then(isP => {
+                                            if(isP.val() === "true"){
+                                                admin.database().ref(`publicCharts/${chartKey}/loveCount`).set(loveCount)                                                 
+                                            }
+                                        })
                                         return admin.database().ref(`users/${userUid}/friendsList`).once('value')
                                         .then(friends => {
                                             friends.forEach(friend => {
