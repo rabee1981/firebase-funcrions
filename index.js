@@ -96,6 +96,8 @@ exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{i
                          .onWrite(event => {
                              const userUid = event.params.userUid;
                              const friendFireUid = event.data.val()
+                             if(friendFireUid)
+                                admin.database().ref(`users/${userUid}/friendsFireUid/${friendFireUid}`).set(true)
                              return admin.database().ref(`/users/${friendFireUid}/userCharts`).once('value')
                              .then(friendCharts => {
                                  admin.database().ref(`users/${userUid}/friendsCharts`).update(friendCharts.val())
