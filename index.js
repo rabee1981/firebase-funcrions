@@ -345,11 +345,12 @@ exports.getShortLink = functions.https.onRequest((req,res)=>{
             const tokenId = req.get('Authorization').split('Bearer ')[1];
             return admin.auth().verifyIdToken(tokenId)
             .then((decoded) => {
-                const longUrl = req.query.longUrl
-                if(typeof longUrl !== 'string'){
+                const key = req.query.key
+                if(typeof key !== 'string'){
                     res.status(401).send('called rejected')
                     return
                 }
+                let longUrl = "https://funvaotedata.firebaseapp.com/chart/"+key
                 const googleShortenerKey = "AIzaSyB3Yywoi6F0ipDHYWEV7HCDEJGgKh84Irg";
                 request({
                             method: 'POST',
