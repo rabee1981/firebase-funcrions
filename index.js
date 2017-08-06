@@ -198,6 +198,7 @@ exports.storeChart = functions.https.onRequest((req,res) => {
                 if(isUnderLimit){
                     var key = admin.database().ref(`users/${useruid}/userCharts`).push(chartDetails).then(
                         chart => {
+                            admin.database().ref(`allChartskey/${chart.key}`).set(true)
                             res.status(200).send(chart.key)
                         }
                     )
@@ -263,6 +264,7 @@ exports.deleteChart = functions.https.onRequest((req,res)=>{
                     if(!isOwner){
                         res.status(401).send('you are not the owner for this chart, so you cannot delete it')
                     }else{
+                        admin.database().ref(`allChartskey/${key}`).remove()
                         admin.database().ref(`users/${useruid}/userCharts/${key}/followers`).once('value')
                         .then(followers => {
                             if(followers.val()){
@@ -350,9 +352,15 @@ exports.getShortLink = functions.https.onRequest((req,res)=>{
                     res.status(401).send('called rejected')
                     return
                 }
-                let longUrl = "https://funvaotedata.firebaseapp.com/chart/"+key
-                const googleShortenerKey = "AIzaSyB3Yywoi6F0ipDHYWEV7HCDEJGgKh84Irg";
-                request({
+                admin.database().ref(`allChartskey/${key}`).once('value')
+                .then(exist => {
+                    console.log(exist.val())
+                    return exist.val()
+                }).then(isExist => {
+                    if(isExist){
+                        let longUrl = "https://funvaotedata.firebaseapp.com/chart/"+key
+                        const googleShortenerKey = "AIzaSyB3Yywoi6F0ipDHYWEV7HCDEJGgKh84Irg";
+                        request({
                             method: 'POST',
                             uri: `https://www.googleapis.com/urlshortener/v1/url?key=${googleShortenerKey}`,
                             body: {
@@ -368,7 +376,11 @@ exports.getShortLink = functions.https.onRequest((req,res)=>{
                         }).then(shortUrl => {
                             res.status(200).send(shortUrl)
                         })
-                
+                    }else{
+                        res.status(401).send('called rejected')
+                        return
+                    }
+                })
             })
             .catch((err) => res.status(402).send('permission denied'));
         });
