@@ -150,7 +150,7 @@ exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey
                             .then(chartName => {
                                 var payload = {
                                     "notification": {
-                                        "title": "Vote4Fun",
+                                        "title": "Vote Fun",
                                         "body": userInfo.val().name + " vote to " + chartName.val(),
                                         "sound": "default",
                                     }
