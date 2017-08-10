@@ -225,8 +225,11 @@ exports.voteFor = functions.https.onRequest((req, res) => {
                 const key = req.query.key
                 const owner = req.query.owner
                 const index = req.query.index
-                admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).once('value')
-                    .then(
+                admin.database().ref(`users/${owner}/userCharts/${key}`).once('value')
+                .then(chart => {
+                    if(chart.val()){
+                        admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).once('value')
+                        .then(
                         voters => {
                             if (voters.val()) {
                                 res.status(401).send('you are already voted')
@@ -248,6 +251,10 @@ exports.voteFor = functions.https.onRequest((req, res) => {
                             }
                         }
                     )
+                    }else{
+                        res.status(403).send('this chart has been deleted')
+                    }
+                })
             })
             .catch((err) => res.status(402).send('permission denied'));
     });
@@ -296,8 +303,11 @@ exports.followChart = functions.https.onRequest((req, res) => {
                 const key = req.query.key
                 const owner = req.query.owner
                 const location = req.query.locationInDb // user = 1 ; friends = 2 ; public = 3
-                admin.database().ref(`users/${useruid}/follow/${key}`).once('value')
-                    .then(
+                admin.database().ref(`users/${owner}/userCharts/${key}`).once('value')
+                .then(chart => {
+                    if(chart.val()){
+                        admin.database().ref(`users/${useruid}/follow/${key}`).once('value')
+                        .then(
                         followValue => {
                             let toFollow = followValue.val() ? null : location
                             let message = "follow"
@@ -317,6 +327,10 @@ exports.followChart = functions.https.onRequest((req, res) => {
                             res.status(200).send(message + ' successfully')
                         }
                     )
+                    }else{
+                        res.status(403).send('this chart has been deleted')
+                    }
+                })
             })
             .catch((err) => res.status(402).send('permission denied'));
     });
