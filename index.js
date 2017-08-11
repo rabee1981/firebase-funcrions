@@ -153,10 +153,12 @@ exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey
                                         "title": "Vote Fun",
                                         "body": userInfo.val().name + " vote to " + chartName.val(),
                                         "sound": "default",
+                                        "badge": "1"
                                     }
                                 }
                                 return admin.messaging().sendToDevice(token.val(), payload)
                                     .then(res => {
+                                        admin.messaging()
                                         console.log('notification sended');
                                     })
                                     .catch(err => {
