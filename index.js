@@ -109,30 +109,30 @@ exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{i
             })
     })
 // update loveCount in publicCharts and friendsCharts
-// exports.updateChartsWhenLove = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/loveCount`)
-//     .onWrite(event => {
-//         const userUid = event.params.userUid;
-//         const chartKey = event.params.chartKey;
-//         const loveCount = event.data.val();
-//         let userFriends = [];
-//         if (loveCount !== null) {
-//             admin.database().ref(`users/${userUid}/userCharts/${chartKey}/isPublic`).once('value')
-//                 .then(isP => {
-//                     if (isP.val() === "true") {
-//                         admin.database().ref(`publicCharts/${chartKey}/loveCount`).set(loveCount)
-//                     }
-//                 })
-//             return admin.database().ref(`users/${userUid}/friendsList`).once('value')
-//                 .then(friends => {
-//                     friends.forEach(friend => {
-//                         userFriends.push(friend.val().firebaseUid);
-//                     })
-//                     for (let f of userFriends) {
-//                         admin.database().ref(`users/${f}/friendsCharts/${chartKey}/loveCount`).set(loveCount)
-//                     }
-//                 })
-//         }
-//     })
+exports.updateChartsWhenLove = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/loveCount`)
+    .onWrite(event => {
+        const userUid = event.params.userUid;
+        const chartKey = event.params.chartKey;
+        const loveCount = event.data.val();
+        let userFriends = [];
+        if (loveCount !== null) {
+            admin.database().ref(`users/${userUid}/userCharts/${chartKey}/isPublic`).once('value')
+                .then(isP => {
+                    if (isP.val() === "true") {
+                        admin.database().ref(`publicCharts/${chartKey}/loveCount`).set(loveCount)
+                    }
+                })
+            return admin.database().ref(`users/${userUid}/friendsList`).once('value')
+                .then(friends => {
+                    friends.forEach(friend => {
+                        userFriends.push(friend.val().firebaseUid);
+                    })
+                    for (let f of userFriends) {
+                        admin.database().ref(`users/${f}/friendsCharts/${chartKey}/loveCount`).set(loveCount)
+                    }
+                })
+        }
+    })
 // send push notification
 exports.sendPush = functions.database.ref('/users/{useruid}/userCharts/{chartKey}/voters/{voteruid}')
     .onWrite(event => {
