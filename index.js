@@ -193,6 +193,7 @@ exports.storeChart = functions.https.onRequest((req, res) => {
                     chartsSnap => {
                         if (chartsSnap.val())
                             return Object.keys(chartsSnap.val()).length < 4
+                        return true //if the user have not any chart
                     }
                 ).then(
                     isUnderLimit => {
