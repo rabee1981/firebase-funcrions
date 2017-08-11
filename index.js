@@ -49,21 +49,25 @@ exports.updateChartsWhenVote = functions.database.ref(`/users/{userUid}/userChar
         const voterUid = event.auth.variable ? event.auth.variable.uid : null;
         let userFriends = [];
         if (chartData !== null) {
-            return admin.database().ref(`users/${userUid}/userCharts/${chartKey}/isPublic`).once('value')
+            const voteCount = -1 * chartData.reduce((a, b) => {
+                return a + b
+            })
+            admin.database().ref(`users/${userUid}/userCharts/${chartKey}/isPublic`).once('value')
                 .then(isP => {
                     if (isP.val() === "true") {
-                        return admin.database().ref(`publicCharts/${chartKey}/chartData`).set(chartData)
+                        admin.database().ref(`publicCharts/${chartKey}/chartData`).set(chartData)
+                        admin.database().ref(`publicCharts/${chartKey}/voteCount`).set(voteCount)
                     }
-                }).then(() => {
-                    return admin.database().ref(`users/${userUid}/friendsList`).once('value')
-                        .then(friends => {
-                            friends.forEach(friend => {
-                                userFriends.push(friend.val().firebaseUid);
-                            })
-                            for (let f of userFriends) {
-                                admin.database().ref(`users/${f}/friendsCharts/${chartKey}/chartData`).set(chartData)
-                            }
-                        })
+                })
+            return admin.database().ref(`users/${userUid}/friendsList`).once('value')
+                .then(friends => {
+                    friends.forEach(friend => {
+                        userFriends.push(friend.val().firebaseUid);
+                    })
+                    for (let f of userFriends) {
+                        admin.database().ref(`users/${f}/friendsCharts/${chartKey}/chartData`).set(chartData)
+                        admin.database().ref(`users/${f}/friendsCharts/${chartKey}/voteCount`).set(voteCount)
+                    }
                 })
         }
     })
@@ -209,7 +213,7 @@ exports.storeChart = functions.https.onRequest((req, res) => {
                             res.status(403).send('write denied by chart limit')
                         }
                     }
-                )
+                    )
             })
             .catch((err) => res.status(402).send('permission denied'));
     });
@@ -229,26 +233,26 @@ exports.voteFor = functions.https.onRequest((req, res) => {
                         if (chart.val()) {
                             admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).once('value')
                                 .then(
-                                    voters => {
-                                        if (voters.val()) {
-                                            res.status(401).send('you are already voted')
-                                        } else {
-                                            admin.database().ref(`users/${owner}/userCharts/${key}/voteCount`).ref.transaction(
-                                                currentValue => {
-                                                    currentValue--
-                                                    return currentValue
-                                                }
-                                            )
-                                            admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).set(true)
-                                            admin.database().ref(`users/${owner}/userCharts/${key}/chartData/${index}`).ref.transaction(
-                                                currentValue => {
-                                                    currentValue++
-                                                    return currentValue
-                                                }
-                                            )
-                                            res.status(200).send('voted successfully')
-                                        }
+                                voters => {
+                                    if (voters.val()) {
+                                        res.status(401).send('you are already voted')
+                                    } else {
+                                        admin.database().ref(`users/${owner}/userCharts/${key}/voteCount`).ref.transaction(
+                                            currentValue => {
+                                                currentValue--
+                                                return currentValue
+                                            }
+                                        )
+                                        admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).set(true)
+                                        admin.database().ref(`users/${owner}/userCharts/${key}/chartData/${index}`).ref.transaction(
+                                            currentValue => {
+                                                currentValue++
+                                                return currentValue
+                                            }
+                                        )
+                                        res.status(200).send('voted successfully')
                                     }
+                                }
                                 )
                         } else {
                             res.status(403).send('this chart has been deleted')
@@ -307,24 +311,24 @@ exports.followChart = functions.https.onRequest((req, res) => {
                         if (chart.val()) {
                             admin.database().ref(`users/${useruid}/follow/${key}`).once('value')
                                 .then(
-                                    followValue => {
-                                        let toFollow = followValue.val() ? null : location
-                                        let message = "follow"
-                                        admin.database().ref(`users/${owner}/userCharts/${key}/followerCount`).ref.transaction(
-                                            currentValue => {
-                                                if (toFollow) {
-                                                    currentValue--
-                                                } else {
-                                                    currentValue++
-                                                    message = "unfollow"
-                                                }
-                                                return currentValue
+                                followValue => {
+                                    let toFollow = followValue.val() ? null : location
+                                    let message = "follow"
+                                    admin.database().ref(`users/${owner}/userCharts/${key}/followerCount`).ref.transaction(
+                                        currentValue => {
+                                            if (toFollow) {
+                                                currentValue--
+                                            } else {
+                                                currentValue++
+                                                message = "unfollow"
                                             }
-                                        )
-                                        admin.database().ref(`users/${owner}/userCharts/${key}/followers/${useruid}`).set(toFollow)
-                                        admin.database().ref(`users/${useruid}/follow/${key}`).set(toFollow)
-                                        res.status(200).send(message + ' successfully')
-                                    }
+                                            return currentValue
+                                        }
+                                    )
+                                    admin.database().ref(`users/${owner}/userCharts/${key}/followers/${useruid}`).set(toFollow)
+                                    admin.database().ref(`users/${useruid}/follow/${key}`).set(toFollow)
+                                    res.status(200).send(message + ' successfully')
+                                }
                                 )
                         } else {
                             res.status(403).send('this chart has been deleted')
