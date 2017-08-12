@@ -105,7 +105,15 @@ exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{i
             admin.database().ref(`users/${userUid}/friendsFireUid/${friendFireUid}`).set(true)
         return admin.database().ref(`/users/${friendFireUid}/userCharts`).once('value')
             .then(friendCharts => {
-                admin.database().ref(`users/${userUid}/friendsCharts`).update(friendCharts.val())
+                admin.database().ref(`users/${userUid}/friendsCharts`).once('value').then(charts => {
+                    if(charts.val()){
+                        console.log('update')
+                        admin.database().ref(`users/${userUid}/friendsCharts`).update(friendCharts.val())
+                    }else{
+                        console.log('set')
+                        admin.database().ref(`users/${userUid}/friendsCharts`).set(friendCharts.val())
+                    }
+                })
             })
     })
 // update loveCount in publicCharts and friendsCharts
