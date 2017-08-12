@@ -94,13 +94,15 @@ exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{i
     .onWrite(event => {
         const userUid = event.params.userUid;
         const friendFireUid = event.data.val()
-        if (friendFireUid)
+        if (friendFireUid) {
+            admin.database().ref(`users/${friendFireUid}/friendsFireUid/${userUid}`).set(true)
             admin.database().ref(`users/${userUid}/friendsFireUid/${friendFireUid}`).set(true)
-        return admin.database().ref(`/users/${friendFireUid}/userCharts`).once('value')
-            .then(friendCharts => {
-                if (friendCharts.val())
-                    admin.database().ref(`users/${userUid}/friendsCharts`).update(friendCharts.val())
-            })
+            return admin.database().ref(`/users/${friendFireUid}/userCharts`).once('value')
+                .then(friendCharts => {
+                    if (friendCharts.val())
+                        admin.database().ref(`users/${userUid}/friendsCharts`).update(friendCharts.val())
+                })
+        }
     })
 // update loveCount in publicCharts and friendsCharts
 exports.updateChartsWhenLove = functions.database.ref(`/users/{userUid}/userCharts/{chartKey}/loveCount`)
