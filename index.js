@@ -19,9 +19,9 @@ exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid
         return admin.database().ref(`/facebookUidVsFirebaseUid/${friendFacebookUid}`).once('value')
             .then(firebaseUid => {
                 admin.database().ref(`users/${userUid}/friendsList/${index}/firebaseUid`).set(firebaseUid.val())
-                admin.database().ref(`users/${userUid}/userInfo/facebookUid`).once('value')
+                return admin.database().ref(`users/${userUid}/userInfo/facebookUid`).once('value')
                     .then(userFacebookUid => {
-                        admin.database().ref(`users/${firebaseUid.val()}/friendsList/${userFacebookUid.val()}/firebaseUid`)
+                        return admin.database().ref(`users/${firebaseUid.val()}/friendsList/${userFacebookUid.val()}/firebaseUid`)
                             .set(userUid)
                     })
             })
@@ -86,6 +86,13 @@ exports.updateFriendsCharts = functions.database.ref(`/users/{userUid}/userChart
 exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{index}/firebaseUid')
     .onWrite(event => {
         const userUid = event.params.userUid;
+        if (!event.data.exists()) { // when unfriend
+            const deletedFriendFireUid = event.data.previous.val()
+            admin.database().ref(`users/${userUid}/friendsFireUid/${deletedFriendFireUid}`).remove()
+            return admin.database().ref(`users/${userUid}/userInfo/facebookUid`).once('value').then(faceUid => {
+                return admin.database().ref(`users/${deletedFriendFireUid}/friendsList/${faceUid.val()}`).remove()
+            }) 
+        }
         const friendFireUid = event.data.val()
         if (friendFireUid) {
             admin.database().ref(`users/${friendFireUid}/friendsFireUid/${userUid}`).set(true)
@@ -93,8 +100,12 @@ exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{i
             return admin.database().ref(`/users/${friendFireUid}/userCharts`).once('value')
                 .then(friendCharts => {
                     if (friendCharts.val())
-                        admin.database().ref(`users/${userUid}/friendsCharts`).update(friendCharts.val())
+                        return admin.database().ref(`users/${userUid}/friendsCharts`).update(friendCharts.val())
+                    else
+                        return
                 })
+        }else{
+            return
         }
     })
 // update loveCount in publicCharts and friendsCharts
