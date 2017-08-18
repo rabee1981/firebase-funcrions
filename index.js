@@ -19,17 +19,10 @@ exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid
         return admin.database().ref(`/facebookUidVsFirebaseUid/${friendFacebookUid}`).once('value')
             .then(firebaseUid => {
                 admin.database().ref(`users/${userUid}/friendsList/${index}/firebaseUid`).set(firebaseUid.val())
-                admin.database().ref(`users/${firebaseUid.val()}/friendsList`).once('value')
-                    .then(friends => {
-                        admin.database().ref(`users/${userUid}/userInfo/facebookUid`).once('value')
-                            .then(userFacebookUid => {
-                                friends.forEach(friend => {
-                                    if (userFacebookUid.val() === friend.val().facebookUid) {
-                                        admin.database().ref(`users/${firebaseUid.val()}/friendsList/${friend.key}/firebaseUid`)
-                                            .set(userUid)
-                                    }
-                                })
-                            })
+                admin.database().ref(`users/${userUid}/userInfo/facebookUid`).once('value')
+                    .then(userFacebookUid => {
+                        admin.database().ref(`users/${firebaseUid.val()}/friendsList/${userFacebookUid.val()}/firebaseUid`)
+                            .set(userUid)
                     })
             })
     })
