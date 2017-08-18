@@ -83,6 +83,7 @@ exports.updateFriendsCharts = functions.database.ref(`/users/{userUid}/userChart
                     })
             })
     })
+// when friends add or remove
 exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{index}/firebaseUid')
     .onWrite(event => {
         const userUid = event.params.userUid;
@@ -91,7 +92,7 @@ exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{i
             admin.database().ref(`users/${userUid}/friendsFireUid/${deletedFriendFireUid}`).remove()
             return admin.database().ref(`users/${userUid}/userInfo/facebookUid`).once('value').then(faceUid => {
                 return admin.database().ref(`users/${deletedFriendFireUid}/friendsList/${faceUid.val()}`).remove()
-            }) 
+            })
         }
         const friendFireUid = event.data.val()
         if (friendFireUid) {
@@ -104,7 +105,7 @@ exports.newFriendAdded = functions.database.ref('/users/{userUid}/friendsList/{i
                     else
                         return
                 })
-        }else{
+        } else {
             return
         }
     })
@@ -404,3 +405,18 @@ exports.getShortLink = functions.https.onRequest((req, res) => {
             .catch((err) => res.status(402).send('permission denied'));
     });
 })
+exports.removeChartWhenUnfriend = functions.database.ref(`users/{useruid}/friendsFireUid/{friendRemoved}`)
+    .onWrite(event => {
+        if (!event.data.exists()) {
+            const friendRemovedUid = event.params.friendRemoved
+            const useruid = event.params.useruid
+            return admin.database().ref(`users/${useruid}/friendsCharts`).orderByChild('owner').equalTo(friendRemovedUid).once('value')
+                .then(charts => {
+                    charts.forEach(chart => {
+                        return admin.database().ref(`users/${useruid}/friendsCharts/${chart.key}`).remove()
+                    })
+                })
+        }else{
+            return
+        }
+    })
