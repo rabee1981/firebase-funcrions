@@ -221,7 +221,7 @@ exports.storeChart = functions.https.onRequest((req, res) => {
 exports.voteFor = functions.https.onRequest((req, res) => {
     cors(req, res, () => {
         const tokenId = req.get('Authorization').split('Bearer ')[1];
-        return admin.auth().verifyIdToken(tokenId)
+        admin.auth().verifyIdToken(tokenId)
             .then((decoded) => {
                 var useruid = decoded.uid;
                 const key = req.query.key
@@ -236,20 +236,26 @@ exports.voteFor = functions.https.onRequest((req, res) => {
                                     if (voters.val()) {
                                         res.status(401).send('you are already voted')
                                     } else {
-                                        admin.database().ref(`users/${owner}/userCharts/${key}/voteCount`).ref.transaction(
-                                            currentValue => {
-                                                currentValue--
-                                                return currentValue
-                                            }
-                                        )
                                         admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).set(true)
-                                        admin.database().ref(`users/${owner}/userCharts/${key}/chartData/${index}`).ref.transaction(
-                                            currentValue => {
-                                                currentValue++
-                                                return currentValue
-                                            }
-                                        )
-                                        res.status(200).send('voted successfully')
+                                            .then(_ => {
+                                                return admin.database().ref(`users/${owner}/userCharts/${key}/voteCount`).ref.transaction(
+                                                    currentValue => {
+                                                        currentValue--
+                                                        return currentValue
+                                                    }
+                                                )
+                                            }).then(_ => {
+                                                return admin.database().ref(`users/${owner}/userCharts/${key}/chartData/${index}`).ref.transaction(
+                                                    currentValue => {
+                                                        currentValue++
+                                                        return currentValue
+                                                    }
+                                                )
+                                            }).then(_ => {
+                                                res.status(200).send('voted successfully')
+                                            }).catch(err => {
+                                                res.status(405).send('the vote not recorded')
+                                            })
                                     }
                                 }
                                 )
@@ -416,7 +422,7 @@ exports.removeChartWhenUnfriend = functions.database.ref(`users/{useruid}/friend
                         return admin.database().ref(`users/${useruid}/friendsCharts/${chart.key}`).remove()
                     })
                 })
-        }else{
+        } else {
             return
         }
     })
