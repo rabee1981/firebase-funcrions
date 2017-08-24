@@ -18,12 +18,16 @@ exports.updateFirebaseUidInFriendsList = functions.database.ref('/users/{userUid
         const friendFacebookUid = event.data.val()
         return admin.database().ref(`/facebookUidVsFirebaseUid/${friendFacebookUid}`).once('value')
             .then(firebaseUid => {
-                admin.database().ref(`users/${userUid}/friendsList/${index}/firebaseUid`).set(firebaseUid.val())
-                return admin.database().ref(`users/${userUid}/userInfo/facebookUid`).once('value')
-                    .then(userFacebookUid => {
-                        return admin.database().ref(`users/${firebaseUid.val()}/friendsList/${userFacebookUid.val()}/firebaseUid`)
-                            .set(userUid)
-                    })
+                if(firebaseUid.val()){
+                    admin.database().ref(`users/${userUid}/friendsList/${index}/firebaseUid`).set(firebaseUid.val())
+                    return admin.database().ref(`users/${userUid}/userInfo/facebookUid`).once('value')
+                        .then(userFacebookUid => {
+                            return admin.database().ref(`users/${firebaseUid.val()}/friendsList/${userFacebookUid.val()}/firebaseUid`)
+                                .set(userUid)
+                        })
+                }else{
+                    return
+                }
             })
     })
 // update friendsCharts and publicCharts when vote and store voters
