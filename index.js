@@ -208,6 +208,7 @@ exports.storeChart = functions.https.onRequest((req, res) => {
                             admin.database().ref(`users/${useruid}/userCharts`).push(chartDetails).then(
                                 chart => {
                                     admin.database().ref(`allChartskey/${chart.key}`).set(true).then(() => {
+                                        console.log(useruid+' create '+chart.key)
                                         res.status(200).send(chart.key)
                                     })
                                 }
@@ -240,6 +241,7 @@ exports.voteFor = functions.https.onRequest((req, res) => {
                                     if (voters.val()) {
                                         res.status(401).send('you are already voted')
                                     } else {
+                                        console.log(useruid+' vote for '+ key + ' the owner is ' + owner)
                                         admin.database().ref(`users/${owner}/userCharts/${key}/voters/${useruid}`).set(true)
                                             .then(_ => {
                                                 return admin.database().ref(`users/${owner}/userCharts/${key}/voteCount`).ref.transaction(
@@ -378,6 +380,7 @@ exports.getShortLink = functions.https.onRequest((req, res) => {
         return admin.auth().verifyIdToken(tokenId)
             .then((decoded) => {
                 const key = req.query.key
+                const useruid = decoded.uid;
                 if (typeof key !== 'string') {
                     res.status(401).send('called rejected')
                     return
@@ -388,6 +391,7 @@ exports.getShortLink = functions.https.onRequest((req, res) => {
                         return exist.val()
                     }).then(isExist => {
                         if (isExist) {
+                            console.log(key + ' is shared by ' + useruid )
                             let longUrl = "https://funvaotedata.firebaseapp.com/chart/" + key
                             const googleShortenerKey = "AIzaSyB3Yywoi6F0ipDHYWEV7HCDEJGgKh84Irg";
                             request({
